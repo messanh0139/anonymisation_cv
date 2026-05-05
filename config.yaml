@@ -1,0 +1,47 @@
+# ─────────────────────────────────────────────────────────────────
+#  config.yaml — Configuration centralisée du pipeline anonymi_cv
+#  Modifiez ce fichier pour adapter le projet à un autre Drive,
+#  un autre environnement ou d'autres modèles.
+# ─────────────────────────────────────────────────────────────────
+
+# ── Google Drive ──────────────────────────────────────────────────
+drive:
+  input_folder_id:           "1zAq0Rlqum20KzXO-cbtkGkaCqgIb3gQx"   # cv_entrants
+  technical_json_folder_id:  "1Rt-Qs5CpmhIs0nyGeWugr4W_AYv29xq2"   # cv_anonymiser
+  structured_json_folder_id: "1cGlwNnimrhZvkYDk0wCMbbiUDRQzQ6dT"   # cv_anonymiser_structurer
+  registry_folder_id:        "1U5UjjDRfsXy8a5OiPa2evLbvfN8CYmw2"   # dossier_cv_csv
+  processed_folder_id:       "17pjUuPMlKHjhmq80KBT69-nEHOlqXzNI"   # cv_traiter
+
+# ── Credentials OAuth ─────────────────────────────────────────────
+credentials:
+  client_secret_path: "credentials/credentials.json"
+  token_path:         "credentials/token.json"
+
+# ── Modèles IA ────────────────────────────────────────────────────
+models:
+  # Modèle d'embeddings multilingue (FR/EN) — léger, rapide CPU
+  embedding: "paraphrase-multilingual-MiniLM-L12-v2"
+  # Modèles spaCy NER
+  spacy_fr:  "fr_core_news_md"
+  spacy_en:  "en_core_web_md"
+  # Seuil de similarité pour la classification par embeddings (0.0 - 1.0)
+  embedding_threshold: 0.45
+
+# ── Pipeline ──────────────────────────────────────────────────────
+pipeline:
+  # Nombre de CVs traités en parallèle (1 = séquentiel, recommandé pour éviter les crashs pdflatex)
+  parallel_workers: 1
+  # Timeout pdflatex en secondes
+  pdflatex_timeout: 60
+  # Nombre de recompilations LaTeX (2 = références croisées résolues)
+  latex_passes: 2
+
+# ── Chemins locaux ────────────────────────────────────────────────
+paths:
+  temp_dir:   "temp"
+  output_dir: "output"
+
+# ── Logging ───────────────────────────────────────────────────────
+logging:
+  level: "INFO"   # DEBUG / INFO / WARNING / ERROR
+  format: "json"  # json ou text

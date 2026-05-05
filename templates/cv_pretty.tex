@@ -1,0 +1,261 @@
+\documentclass[10pt]{article}
+
+\usepackage[T1]{fontenc}
+\usepackage[utf8]{inputenc}
+\usepackage[sfdefault]{carlito}
+\usepackage[light]{montserrat}
+\usepackage{xcolor}
+\usepackage[none]{hyphenat}
+\sloppy
+\usepackage{tikz}
+\usetikzlibrary{calc}
+\usepackage{enumitem}
+\usepackage{ragged2e}
+\usepackage{hyperref}
+\usepackage{microtype}
+\usepackage[a4paper]{geometry}
+\usepackage{eso-pic}
+\usepackage{paracol}
+\usepackage{graphicx}
+\usepackage{fancyhdr}
+\usepackage{changepage}
+
+\definecolor{Sidebar}{HTML}{19395E}
+\definecolor{Brand}{HTML}{2a2454}
+\definecolor{Accent}{HTML}{0F9ED5}
+\definecolor{Ink}{HTML}{232323}
+\color{Ink}
+
+\hypersetup{colorlinks=true,linkcolor=Brand,urlcolor=Accent}
+
+\newlength{\RightBar}
+\setlength{\RightBar}{70mm}
+\newlength{\Gutter}
+\setlength{\Gutter}{5mm}
+\setlength{\columnsep}{\Gutter}
+
+\newlength{\SidebarPadL}
+\setlength{\SidebarPadL}{4mm}
+\newlength{\SidebarPadR}
+\setlength{\SidebarPadR}{4mm}
+
+\newlength{\FooterReserve}
+\setlength{\FooterReserve}{20mm}
+\newlength{\TopClearance}
+\setlength{\TopClearance}{22mm}
+
+\geometry{
+  left=14mm,
+  right=1mm,
+  top=\dimexpr14mm+\TopClearance\relax,
+  bottom=\FooterReserve,
+  includefoot
+}
+
+\setlength{\footskip}{12mm}
+\setlength{\parindent}{0pt}
+\setlength{\parskip}{1.5pt}
+
+\setlist[itemize]{leftmargin=*,labelindent=0pt,labelsep=2.2mm,align=parleft,itemsep=0.5pt,topsep=1pt,label=\textbullet}
+
+\newlength{\TitlePad}
+\setlength{\TitlePad}{10mm}
+
+\newcommand{\jobtitle}[1]{%
+  \begingroup
+    \parbox[t]{\dimexpr\textwidth-\RightBar-\Gutter-\TitlePad\relax}{%
+      \RaggedRight
+      \let\oldslash\slash
+      \renewcommand{\slash}{\oldslash\penalty0\hspace{0pt}}%
+      \emergencystretch=1em
+      {\titlefont\Large\bfseries\color{Brand} #1}%
+    }%
+  \par
+  \endgroup
+}
+
+\newlist{itemizea}{itemize}{1}
+\setlist[itemizea]{leftmargin=0pt,labelindent=0pt,labelsep=0pt,itemsep=1pt,topsep=1pt,label={} }
+
+\newcommand{\mainhead}[1]{%
+  \noindent{\bfseries\color{Accent}\MakeUppercase{#1}}\par\vspace{-7pt}
+  \noindent\color{Brand}\rule{\linewidth}{0.8pt}\par\vspace{1pt}\color{Ink}
+}
+
+\newcommand{\sidehead}[1]{%
+  {\bfseries\MakeUppercase{#1}}\par\vspace{-7pt}
+  \color{white}\rule{\linewidth}{0.5pt}\par\vspace{2pt}\color{white}
+}
+
+\newcommand{\rolesize}{\fontsize{11.5}{13}\selectfont}
+
+\newcommand{\role}[3]{%
+  \vspace{3pt}
+  \noindent\textbf{\color{Brand}\rolesize #1}\par\vspace{-7pt}
+  \noindent\makebox[\linewidth]{%
+    \parbox[t]{.66\linewidth}{\raggedright\itshape\color{Brand} #2}%
+    \hfill
+    \parbox[t]{.32\linewidth}{\raggedleft\bfseries\itshape\color{Brand} #3}%
+  }\par
+}
+
+\newcommand{\TopPuzzle}{%
+  \AddToShipoutPictureBG{%
+    \begin{tikzpicture}[remember picture,overlay]
+      \node (puzbg) [anchor=north east, inner sep=0pt] at
+        ([xshift=-\RightBar+25.71mm,yshift=-7mm]current page.north east)
+        {\includegraphics[width=44mm]{assets/puzzle1.png}};
+    \end{tikzpicture}%
+  }%
+  \AddToShipoutPictureFG{%
+    \begin{tikzpicture}[remember picture,overlay]
+      \node (puz) [anchor=north east, inner sep=0pt, opacity=0] at
+        ([xshift=-\RightBar+25.71mm,yshift=-9mm]current page.north east)
+        {\includegraphics[width=44mm]{assets/puzzle1.png}};
+      \node[font=\bfseries\large, text=white]
+        at ($ (puz.center)!0.5!(puz.east) + (-4mm,4.5mm) $) {};
+    \end{tikzpicture}%
+  }%
+}
+
+\fancypagestyle{cvfooter}{%
+  \fancyhf{}
+  \fancyfoot[L]{}
+  \renewcommand{\headrulewidth}{0pt}
+  \renewcommand{\footrulewidth}{0pt}
+}
+
+\newlength{\LeftMargin}
+\setlength{\LeftMargin}{14mm}
+
+\newcommand{\LeftMainFooter}{%
+  \AddToShipoutPictureFG{%
+    \begin{tikzpicture}[remember picture,overlay]
+      \node[anchor=south west, inner sep=0pt] at
+        ([xshift=\LeftMargin,yshift=8mm]current page.south west)
+        {\makebox[\dimexpr\textwidth-\RightBar-\Gutter\relax][c]{%
+            \raisebox{-7pt}{\includegraphics[height=10mm]{assets/OIM_logo.png}}\hspace{0mm}%
+            {\small\bfseries\color{Accent}\mbox{Qualité, Intégrité, Fiabilité}}%
+        }};
+    \end{tikzpicture}%
+  }%
+}
+
+\newcommand{\RightSidebarFooter}{%
+  \AddToShipoutPictureFG{%
+    \begin{tikzpicture}[remember picture,overlay]
+      \node[anchor=south, inner sep=0pt] at
+        ($ (current page.south east)!0.5!([xshift=-\RightBar]current page.south east)+ (0mm, 8mm) $)
+        {\begin{minipage}[t]{\dimexpr\RightBar-2\SidebarPadL\relax}
+           \centering
+           {\scriptsize\color{white!92}\textbf{OIM France SAS}}\\[-1pt]
+           {\scriptsize\color{white!85}RCS Saint Nazaire 948 296 983}\\[-1pt]
+           {\scriptsize\color{white!80}12, allée des Alizés, 44380 Pornichet, France}
+         \end{minipage}};
+    \end{tikzpicture}%
+  }%
+}
+
+\AddToShipoutPictureBG{%
+  \begin{tikzpicture}[remember picture,overlay]
+    \fill[Sidebar] ([xshift=-\RightBar]current page.north east)
+      rectangle (current page.south east);
+  \end{tikzpicture}%
+}
+
+\begin{document}
+\pagestyle{cvfooter}
+\TopPuzzle
+\vspace*{-\TopClearance}
+\LeftMainFooter
+\RightSidebarFooter
+
+\setcolumnwidth{\dimexpr\textwidth-\RightBar-\Gutter\relax,\RightBar}
+
+\begin{paracol}{2}
+\begin{leftcolumn}
+
+\newcommand{\titlefont}{\fontfamily{Montserrat-LF}\selectfont}
+
+\jobtitle{Data Scientist}
+\vspace{2pt}
+
+\par{\small\color{Brand}\bfseries Identifiant candidat : CANDIDAT}
+
+\vspace{4pt}
+
+\par{\small\color{Brand}\bfseries
+Présenté par OIM, votre partenaire de confiance en services qualité. Nous mettons à disposition des profils d'inspection qualité de haut niveau pour renforcer vos équipes.}
+
+\end{leftcolumn}
+\end{paracol}
+
+\vspace{6pt}
+
+\begin{paracol}{2}
+
+\mainhead{Résumé Exécutif}
+Data Scientist avec 5 ans d'expérience en analyse de données, machine learning et visualisation. Expert en Python et en modélisation prédictive pour des projets à forte valeur ajoutée.
+
+\par\vspace{5pt}
+
+\mainhead{Réalisations Clés}
+\begin{itemizea}
+\item \textbf{Profil général :} Professionnel expérimenté avec un parcours pertinent en inspection et en qualité.
+\end{itemizea}
+
+\vspace{5pt}
+
+\mainhead{Expérience Professionnelle}
+\begin{samepage}
+\role{Data Scientist}{TechCorp}{2022 - 2025}
+\begin{itemize}
+\item Développement de modèles de machine learning pour la prédiction des ventes
+\item Analyse de données massives et création de dashboards
+\end{itemize}
+\end{samepage}
+
+\begin{samepage}
+\role{Data Analyst}{DataSolutions}{2020 - 2022}
+\begin{itemize}
+\item Nettoyage et transformation de données
+\item Visualisation avec Power BI et Tableau
+\end{itemize}
+\end{samepage}
+
+\switchcolumn
+
+\begin{adjustwidth}{\SidebarPadL}{\SidebarPadR}
+\raggedright\color{white}
+
+\sidehead{Compétences Techniques}
+\begin{itemize}
+\item Python
+\item SQL
+\item Machine Learning
+\item Deep Learning
+\item Pandas
+\item Scikit-learn
+\end{itemize}
+
+\vspace{4mm}
+
+\sidehead{Soft Skills \& Hard Skills}
+\begin{itemize}
+\item Esprit analytique
+\item communication
+\item travail en équipe
+\item autonomie
+\end{itemize}
+
+\vspace{4mm}
+
+\sidehead{Formation \& Parcours}
+\begin{itemize}
+\item Master Data Science - Université Lyon 1 (2018 - 2020)
+\end{itemize}
+
+\end{adjustwidth}
+\end{paracol}
+
+\end{document}
