@@ -178,14 +178,25 @@ def normalize_text(text: str) -> str:
 def generate_candidate_id(detected_name: str = "") -> str:
     """
     Génère un identifiant unique.
-    Si un nom est détecté, utilise les initiales : ex. JD-AB12CD
+    Si un nom est détecté, utilise les initiales (max 2) : ex. JD-AB12CD
+    Les accents sont normalisés en ASCII pour garantir un ID propre.
     Sinon : CAND-AB12CD
     """
+    import unicodedata
     random_part = uuid.uuid4().hex[:6].upper()
 
     if detected_name:
         parts = detected_name.strip().split()
-        initials = "".join(p[0].upper() for p in parts if p)[:3]
+        # Garder max 2 mots (prénom + nom) pour l'ID
+        parts = [p for p in parts if p][:2]
+        initials = ""
+        for p in parts:
+            # Normaliser NFD puis retirer les caractères non-ASCII (accents)
+            first = p[0] if p else ""
+            normalized = unicodedata.normalize("NFD", first)
+            ascii_char = "".join(c for c in normalized if unicodedata.category(c) != "Mn")
+            if ascii_char:
+                initials += ascii_char.upper()
         if len(initials) >= 2:
             return f"{initials}-{random_part}"
 
@@ -255,31 +266,48 @@ def is_probable_person_name(name: str) -> bool:
 def guess_name_from_text(text: str) -> str:
     """
     Détecte un nom probable dans les premières lignes du CV.
+    Robuste sur Windows (encodages variés, accents, casse mixte).
     """
-    lines = [line.strip() for line in text.split("\n") if line.strip()]
+    lines = [line.strip() for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n") if line.strip()]
     lines = lines[:20]
 
     forbidden = re.compile(
-        r"curriculum|vitae|cv|resume|profil|profile|contact|email|téléphone|telephone|adresse|address|linkedin|photo|name|dob|date of birth|residency|nationality|languages|langues|page|revis[aã]o|revision|job objective|core competencies|technical certification|professional experiences|work experience|personal profile|education|formation",
+        r"curriculum|vitae|cv|resume|profil|profile|contact|email|t[eé]l[eé]phone|t[eé]l\.|"
+        r"adresse|address|linkedin|photo|name\b|dob|date of birth|residency|nationality|"
+        r"languages|langues|page\b|revis[aã]o|revision|job objective|core competencies|"
+        r"technical certification|professional experiences|work experience|personal profile|"
+        r"education|formation|summary|objective|skills|comp[eé]tences",
         re.IGNORECASE,
+    )
+
+    # Regex principale : Title Case ou MAJUSCULES, 2 à 4 mots, lettres + accents
+    # re.UNICODE est explicitement activé pour garantir le même comportement Linux/Windows
+    name_pattern = re.compile(
+        r"^[A-ZÀ-ŸÄÖÜa-zà-ÿäöü][A-Za-zÀ-ŸÄÖÜà-ÿäöü'\-]+"
+        r"(?:\s+[A-ZÀ-ŸÄÖÜa-zà-ÿäöü][A-Za-zÀ-ŸÄÖÜà-ÿäöü'\-]+){1,3}$",
+        re.UNICODE,
     )
 
     for line in lines:
         if forbidden.search(line):
             continue
-
         if looks_like_job_title(line):
             continue
-
+        # Ignorer les lignes avec chiffres (dates, téléphones, numéros…)
         if re.search(r"\d", line):
             continue
+        # Ignorer les lignes trop courtes (<4 chars) ou trop longues (>60 chars)
+        if len(line) < 4 or len(line) > 60:
+            continue
+        # Ignorer les lignes avec des caractères parasites
+        if re.search(r"[|@#$%^&*_=+\[\]{}<>/\\]", line):
+            continue
 
-        if re.fullmatch(
-            r"[A-ZÀ-Ÿ][A-Za-zÀ-ÿ' -]+(?:\s+[A-ZÀ-Ÿ][A-Za-zÀ-ÿ' -]+){1,3}",
-            line,
-        ):
-            if is_probable_person_name(line):
-                return line
+        if name_pattern.match(line):
+            # Normaliser en Title Case pour homogénéiser (ex: "DUPONT JEAN" → "Dupont Jean")
+            candidate = " ".join(w.capitalize() for w in line.split())
+            if is_probable_person_name(candidate):
+                return candidate
 
     return ""
 
