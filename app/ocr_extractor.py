@@ -7,10 +7,51 @@ from PIL import Image, ImageFilter, ImageEnhance
 
 logger = logging.getLogger(__name__)
 
-if os.name == "nt":
-    pytesseract.pytesseract.tesseract_cmd = r"C:\Program Files\Tesseract-OCR\tesseract.exe"
+# ── Chemins outils — lus depuis config.yaml, sinon détection automatique ─────
+def _get_tool_paths() -> tuple[str | None, str | None]:
+    """
+    Retourne (tesseract_cmd, poppler_path) depuis config.yaml.
+    Si vide ou absent → None (utilise le PATH système).
+    Compatible Linux, Mac et Windows.
+    """
+    try:
+        from app.config_loader import CFG
+        tools = CFG.get("tools", {})
+        tess   = tools.get("tesseract_cmd", "").strip() or None
+        poppler = tools.get("poppler_path", "").strip() or None
+    except Exception:
+        tess = poppler = None
 
-POPPLER_PATH = r"C:\Program Files\poppler\Library\bin" if os.name == "nt" else None
+    # Fallback Windows automatique si non configuré et sur Windows
+    if os.name == "nt":
+        if tess is None:
+            candidates = [
+                r"C:\Program Files\Tesseract-OCR\tesseract.exe",
+                r"C:\Program Files (x86)\Tesseract-OCR\tesseract.exe",
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    tess = c
+                    break
+        if poppler is None:
+            candidates = [
+                r"C:\Program Files\poppler\Library\bin",
+                r"C:\Program Files\poppler\bin",
+                r"C:\poppler\Library\bin",
+                r"C:\poppler\bin",
+            ]
+            for c in candidates:
+                if os.path.exists(c):
+                    poppler = c
+                    break
+
+    return tess, poppler
+
+_TESSERACT_CMD, POPPLER_PATH = _get_tool_paths()
+
+if _TESSERACT_CMD:
+    pytesseract.pytesseract.tesseract_cmd = _TESSERACT_CMD
+    logger.info("[OCR] Tesseract : %s", _TESSERACT_CMD)
 
 # Configuration Tesseract pour extraction FIDÈLE :
 #   --oem 3  : moteur LSTM (le plus précis)

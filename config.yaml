@@ -36,7 +36,21 @@ pipeline:
   # Nombre de recompilations LaTeX (2 = références croisées résolues)
   latex_passes: 2
 
-# ── Chemins locaux ────────────────────────────────────────────────
+# ── Chemins outils système (Windows uniquement) ──────────────────
+# Laisser vide ("") pour utiliser le PATH système (Linux/Mac)
+# Sur Windows, renseigner si les outils ne sont pas dans le PATH
+tools:
+  # Tesseract OCR — laisser "" si dans le PATH
+  # Exemple Windows : "C:/Program Files/Tesseract-OCR/tesseract.exe"
+  tesseract_cmd: ""
+  # Poppler (pdf2image) — laisser "" si dans le PATH
+  # Exemple Windows : "C:/Program Files/poppler/Library/bin"
+  poppler_path: ""
+  # pdflatex (MiKTeX/TeX Live) — laisser "" si dans le PATH
+  # Exemple Windows : "C:/Program Files/MiKTeX/miktex/bin/x64/pdflatex.exe"
+  pdflatex_cmd: ""
+
+
 paths:
   temp_dir:   "temp"
   output_dir: "output"

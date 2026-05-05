@@ -9,6 +9,7 @@ Ordre canonique des sections :
   Barre latérale  : Compétences → Soft Skills → Formation → Langues → Divers
 """
 import re
+import os
 import shutil
 import subprocess
 import tempfile
@@ -18,6 +19,35 @@ from pathlib import Path
 from app.structurer import is_section_header as _is_section_header
 
 TEMPLATES_DIR = Path(__file__).parent.parent / "templates"
+
+
+def _get_pdflatex_cmd() -> str:
+    """
+    Retourne la commande pdflatex à utiliser.
+    Priorité : config.yaml → détection automatique Windows → "pdflatex" (PATH)
+    """
+    try:
+        from app.config_loader import CFG
+        cmd = CFG.get("tools", {}).get("pdflatex_cmd", "").strip()
+        if cmd:
+            return cmd
+    except Exception:
+        pass
+
+    # Détection automatique sur Windows
+    if os.name == "nt":
+        candidates = [
+            r"C:\Program Files\MiKTeX\miktex\bin\x64\pdflatex.exe",
+            r"C:\Program Files\MiKTeX 2.9\miktex\bin\x64\pdflatex.exe",
+            r"C:\texlive\2023\bin\win32\pdflatex.exe",
+            r"C:\texlive\2024\bin\windows\pdflatex.exe",
+        ]
+        for c in candidates:
+            if os.path.exists(c):
+                return c
+
+    return "pdflatex"  # Linux/Mac ou Windows avec PATH configuré
+
 
 # ── Ordre canonique ────────────────────────────────────────────────────────────
 LEFT_GROUPS_ORDER = [
@@ -1434,7 +1464,7 @@ def build_cv_pdf(structured_data: dict, output_path: str) -> str:
         tex_file.write_text(tex_content, encoding="utf-8")
 
         cmd = [
-            "pdflatex",
+            _get_pdflatex_cmd(),
             "-interaction=nonstopmode",
             "-halt-on-error",
             "-output-directory", str(tmp),
