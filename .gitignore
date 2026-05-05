@@ -1,0 +1,11 @@
+.venv/
+__pycache__/
+*.pyc
+temp/
+output/
+# Credentials Google OAuth — ne jamais committer
+credentials/token.json
+credentials/client_secret.json
+credentials/credentials.json
+credentials/ 
+.gitignore
