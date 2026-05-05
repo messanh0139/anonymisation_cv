@@ -273,7 +273,7 @@ def guess_name_from_text(text: str) -> str:
 
     forbidden = re.compile(
         r"curriculum|vitae|cv|resume|profil|profile|contact|email|t[eé]l[eé]phone|t[eé]l\.|"
-        r"adresse|address|linkedin|photo|name\b|dob|date of birth|residency|nationality|"
+        r"adresse|address|linkedin|photo|dob|date of birth|residency|nationality|"
         r"languages|langues|page\b|revis[aã]o|revision|job objective|core competencies|"
         r"technical certification|professional experiences|work experience|personal profile|"
         r"education|formation|summary|objective|skills|comp[eé]tences",
@@ -304,10 +304,58 @@ def guess_name_from_text(text: str) -> str:
             continue
 
         if name_pattern.match(line):
-            # Normaliser en Title Case pour homogénéiser (ex: "DUPONT JEAN" → "Dupont Jean")
-            candidate = " ".join(w.capitalize() for w in line.split())
+            # Title Case robuste : "MARIE-CLAIRE DUPONT" → "Marie-Claire Dupont"
+            candidate = re.sub(r"[A-Za-zÀ-ÿÄÖÜäöü]+", lambda m: m.group(0).capitalize(), line)
             if is_probable_person_name(candidate):
                 return candidate
+
+    # ── Passe 2 : valeur après label explicite "Name:", "Nom:", "Full Name:" ──
+    # Couvre les formats OIM : "Name:             David Parker"
+    _full_name_lbl = re.compile(
+        r"^(?:full\s+)?(?:name|nom|pr[eé]nom\s+(?:et\s+)?nom|surname)"
+        r"\s*[:\-]\s*(.+)$",
+        re.IGNORECASE,
+    )
+    # Couvre les paires "First Name: Alice" + "Last Name: Martin" sur deux lignes
+    _first_lbl = re.compile(r"^(?:first\s+name|pr[eé]nom)\s*[:\-]\s*(.+)$", re.IGNORECASE)
+    _last_lbl  = re.compile(r"^(?:last\s+name|surname|family\s+name)\s*[:\-]\s*(.+)$", re.IGNORECASE)
+
+    all_lines = [
+        line.strip()
+        for line in text.replace("\r\n", "\n").replace("\r", "\n").split("\n")
+        if line.strip()
+    ]
+
+    def _title_case_robust(v: str) -> str:
+        """Title Case robuste : respecte les tirets (Marie-Claire) et accents."""
+        v = re.split(r"[,;(]", v)[0].strip()
+        return re.sub(r"[A-Za-zÀ-ÿÄÖÜäöü]+", lambda m: m.group(0).capitalize(), v)
+
+    # Passe 2a : nom complet sur une ligne (Name: David Parker)
+    for line in all_lines[:30]:
+        m = _full_name_lbl.match(line)
+        if not m:
+            continue
+        value = _title_case_robust(m.group(1))
+        if len(value) < 4 or len(value) > 60 or re.search(r"\d", value):
+            continue
+        if is_probable_person_name(value):
+            return value
+
+    # Passe 2b : prénom et nom sur deux lignes séparées
+    # (First Name: Alice  /  Last Name: Martin)
+    first_name = last_name = ""
+    for line in all_lines[:30]:
+        mf = _first_lbl.match(line)
+        ml = _last_lbl.match(line)
+        if mf:
+            first_name = _title_case_robust(mf.group(1))
+        if ml:
+            last_name = _title_case_robust(ml.group(1))
+    if first_name and last_name and not re.search(r"\d", first_name + last_name):
+        candidate = f"{first_name} {last_name}"
+        if is_probable_person_name(candidate):
+            return candidate
 
     return ""
 
