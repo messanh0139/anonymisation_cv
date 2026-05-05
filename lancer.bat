@@ -39,6 +39,7 @@ if /i "%CMD%"=="status"   goto do_status
 if /i "%CMD%"=="process"  goto do_process
 if /i "%CMD%"=="generate" goto do_generate
 if /i "%CMD%"=="all"      goto do_all
+if /i "%CMD%"=="reset"    goto do_reset
 if /i "%CMD%"=="run"      goto do_run
 
 echo [ERREUR] Commande inconnue : %CMD%
@@ -69,15 +70,16 @@ goto :end
 :do_process
 call :fn_require_server
 echo [>>] Extraction + anonymisation...
-curl -s -X POST %API%/process
+curl -s -X POST %API%/process | .venv\Scripts\python.exe -m json.tool
 echo.
 echo [OK] Traitement termine
 goto :end
 
 :do_generate
 call :fn_require_server
+call :fn_delete_pdfs
 echo [>>] Generation des PDFs LaTeX...
-curl -s -X POST %API%/generate-pdfs
+curl -s -X POST %API%/generate-pdfs | .venv\Scripts\python.exe -m json.tool
 echo.
 echo [OK] PDFs generes
 goto :end
@@ -85,22 +87,33 @@ goto :end
 :do_all
 call :fn_require_server
 echo [>>] Etape 1/2 - Extraction + anonymisation...
-curl -s -X POST %API%/process
+curl -s -X POST %API%/process | .venv\Scripts\python.exe -m json.tool
 echo.
+call :fn_delete_pdfs
 echo [>>] Etape 2/2 - Generation des PDFs...
-curl -s -X POST %API%/generate-pdfs
+curl -s -X POST %API%/generate-pdfs | .venv\Scripts\python.exe -m json.tool
 echo.
 echo [OK] Pipeline complet termine
+goto :end
+
+:do_reset
+call :fn_require_server
+call :fn_delete_pdfs
+echo [>>] Regeneration des PDFs...
+curl -s -X POST %API%/generate-pdfs | .venv\Scripts\python.exe -m json.tool
+echo.
+echo [OK] Reset termine
 goto :end
 
 :do_run
 call :fn_start
 echo.
 echo [>>] Etape 1/2 - Extraction + anonymisation...
-curl -s -X POST %API%/process
+curl -s -X POST %API%/process | .venv\Scripts\python.exe -m json.tool
 echo.
+call :fn_delete_pdfs
 echo [>>] Etape 2/2 - Generation des PDFs...
-curl -s -X POST %API%/generate-pdfs
+curl -s -X POST %API%/generate-pdfs | .venv\Scripts\python.exe -m json.tool
 echo.
 echo ============================================
 echo [OK] Termine - PDFs disponibles sur Drive
@@ -108,6 +121,11 @@ echo ============================================
 goto :end
 
 :: --- Fonctions ---
+
+:fn_delete_pdfs
+echo [>>] Suppression des PDFs existants sur Drive...
+.venv\Scripts\python.exe -c "import sys; sys.path.insert(0,'.'); from app.drive_client import get_drive_service, list_files_in_folder; from app.config_loader import CFG; FOLDER=CFG.get('drive',{}).get('output_folder_id',''); svc=get_drive_service(); pdfs=[f for f in list_files_in_folder(svc,FOLDER) if f['name'].endswith('.pdf')]; [svc.files().delete(fileId=f['id']).execute() or print('  [del]',f['name']) for f in pdfs]; print('Supprimes :',len(pdfs),'fichier(s)')"
+exit /b 0
 
 :fn_check_server
 set SERVER_UP=0
