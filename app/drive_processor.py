@@ -368,6 +368,22 @@ def process_drive_pdfs() -> dict:
         finally:
             cleanup_local_files(local_pdf_path, technical_json_path, structured_json_path)
 
+    # ── Nettoyage final : aucun fichier ne doit rester en local ──────────────
+    # Upload errors.csv sur Drive si des erreurs ont eu lieu
+    if ERRORS_LOCAL_PATH.exists():
+        upload_or_update_file(
+            service=service,
+            file_path=str(ERRORS_LOCAL_PATH),
+            file_name=ERRORS_LOCAL_PATH.name,
+            folder_id=REGISTRY_FOLDER_ID,
+            mime_type="text/csv",
+        )
+    # Le registre et les erreurs sont déjà sur Drive → on purge le local
+    cleanup_local_files(REGISTRY_LOCAL_PATH, ERRORS_LOCAL_PATH)
+    # Cache embeddings sentence-transformers → inutile de le garder entre runs
+    embeddings_cache = TEMP_DIR / "embeddings_cache.pkl"
+    cleanup_local_files(embeddings_cache)
+
     return {
         "status": "ok",
         "message": "Traitement terminé",
