@@ -240,6 +240,7 @@ def looks_like_job_title(line: str) -> bool:
 def is_probable_person_name(name: str) -> bool:
     """
     Vérifie qu'on a probablement un vrai nom de personne.
+    Rejette les termes techniques, géographiques et professionnels.
     """
     if not name:
         return False
@@ -256,9 +257,28 @@ def is_probable_person_name(name: str) -> bool:
     if any(re.search(r"\d", p) for p in parts):
         return False
 
-    if all(p.isupper() for p in parts):
-        # Un nom en MAJUSCULES peut être un vrai nom, donc on ne rejette pas
-        pass
+    # Blocklist : mots qui ne peuvent pas faire partie d'un nom de personne
+    _non_person = re.compile(
+        r"^(?:"
+        # Géographie / infrastructure
+        r"onshore|offshore|station|sub|grid|platform|network|site|zone|area|field|block|"
+        r"terminal|facility|plant|unit|module|panel|bay|cell|room|"
+        # Énergie / technique
+        r"power|voltage|high|low|medium|electric|electrical|electronic|mechanical|civil|"
+        r"structural|petroleum|oil|gas|energy|wind|solar|nuclear|thermal|hydro|water|"
+        r"subsea|marine|pipeline|cable|transformer|switchgear|converter|inverter|"
+        # Titres professionnels génériques
+        r"engineer|manager|director|technical|senior|junior|lead|head|chief|"
+        r"intern|consultant|analyst|specialist|coordinator|supervisor|operator|"
+        r"international|national|regional|global|local|"
+        # Entités corporate
+        r"limited|ltd|inc|corp|group|company|enterprise|services|solutions|"
+        r"project|system|service|division|department|team|branch|sector|industry"
+        r")$",
+        re.IGNORECASE,
+    )
+    if any(_non_person.match(p.rstrip("-")) for p in parts):
+        return False
 
     return True
 
@@ -363,24 +383,36 @@ def guess_name_from_text(text: str) -> str:
 def replace_name(text: str, detected_name: str, candidate_id: str) -> Tuple[str, bool]:
     """
     Remplace le nom détecté par le candidate_id.
-    Ne remplace que si le nom ressemble réellement à un nom de personne.
+    - Remplace le nom complet en priorité.
+    - Ne remplace les parties individuelles que si elles apparaissent
+      rarement dans le texte (≤ 4 occurrences) pour éviter de remplacer
+      des termes techniques courants (ex: "Sub-Station", "Onshore"…).
     """
     if not is_probable_person_name(detected_name):
         return text, False
 
     replaced = False
 
+    # 1. Remplacement du nom complet
     full_name_pattern = re.compile(rf"\b{re.escape(detected_name)}\b", re.IGNORECASE)
     text, count = full_name_pattern.subn(candidate_id, text)
     if count > 0:
         replaced = True
 
+    # 2. Remplacement des parties individuelles — uniquement si le mot
+    #    est rare dans le document (sinon c'est un terme technique répété)
     for part in detected_name.split():
-        if len(part) > 2:
-            part_pattern = re.compile(rf"\b{re.escape(part)}\b", re.IGNORECASE)
-            text, part_count = part_pattern.subn(candidate_id, text)
-            if part_count > 0:
-                replaced = True
+        part_clean = part.strip("-")
+        if len(part_clean) < 3:
+            continue
+        occurrences = len(re.findall(rf"\b{re.escape(part_clean)}\b", text, re.IGNORECASE))
+        if occurrences == 0 or occurrences > 4:
+            # Trop fréquent → terme technique, on ne remplace pas
+            continue
+        part_pattern = re.compile(rf"\b{re.escape(part_clean)}\b", re.IGNORECASE)
+        text, part_count = part_pattern.subn(candidate_id, text)
+        if part_count > 0:
+            replaced = True
 
     return text, replaced
 
